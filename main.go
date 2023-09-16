@@ -50,9 +50,17 @@ func listen(ptmx *os.File) error {
 	}
 	fmt.Println("The client connection was accepted.")
 
+	// Write server standard input to ptmx
+	go func() { _, _ = io.Copy(ptmx, os.Stdin) }()
+
+	// write client input to ptmx
 	go func() { _, _ = io.Copy(ptmx, conn) }()
 
-	_, e = io.Copy(conn, ptmx)
+	// read from ptmx and write to server standard output, and get a copy of ptmx
+	ptmxCopyReader := io.TeeReader(ptmx, os.Stdout)
+
+	// write ptmx to client conn
+	_, e = io.Copy(conn, ptmxCopyReader)
 
 	return e
 }
